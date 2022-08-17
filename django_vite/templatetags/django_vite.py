@@ -4,6 +4,7 @@ from typing import Dict, List
 from urllib.parse import urljoin
 
 from django import template
+from django.apps import apps
 from django.conf import settings
 from django.utils.safestring import mark_safe
 
@@ -134,7 +135,7 @@ class DjangoViteAssetLoader:
         # Add the script by itself
         tags.append(
             DjangoViteAssetLoader._generate_script_tag(
-                urljoin(DJANGO_VITE_STATIC_URL, manifest_entry["file"]),
+                DjangoViteAssetLoader._generate_production_server_url(manifest_entry["file"]),
                 attrs=scripts_attrs,
             )
         )
@@ -171,7 +172,7 @@ class DjangoViteAssetLoader:
                 if css_path not in already_processed:
                     tags.append(
                         DjangoViteAssetLoader._generate_stylesheet_tag(
-                            urljoin(DJANGO_VITE_STATIC_URL, css_path)
+                            DjangoViteAssetLoader._generate_production_server_url(css_path)
                         )
                     )
 
@@ -204,7 +205,7 @@ class DjangoViteAssetLoader:
                 f"at {DJANGO_VITE_MANIFEST_PATH}"
             )
 
-        return urljoin(DJANGO_VITE_STATIC_URL, self._manifest[path]["file"])
+        return DjangoViteAssetLoader._generate_production_server_url(self._manifest[path]["file"])
 
     def generate_vite_legacy_polyfills(
         self,
@@ -236,7 +237,7 @@ class DjangoViteAssetLoader:
         for path, content in self._manifest.items():
             if DJANGO_VITE_LEGACY_POLYFILLS_MOTIF in path:
                 return DjangoViteAssetLoader._generate_script_tag(
-                    urljoin(DJANGO_VITE_STATIC_URL, content["file"]),
+                    DjangoViteAssetLoader._generate_production_server_url(content["file"]),
                     attrs=scripts_attrs,
                 )
 
@@ -284,7 +285,7 @@ class DjangoViteAssetLoader:
         scripts_attrs = {"nomodule": "", "crossorigin": "", **kwargs}
 
         return DjangoViteAssetLoader._generate_script_tag(
-            urljoin(DJANGO_VITE_STATIC_URL, manifest_entry["file"]),
+            DjangoViteAssetLoader._generate_production_server_url(manifest_entry["file"]),
             attrs=scripts_attrs,
         )
 
@@ -401,6 +402,24 @@ class DjangoViteAssetLoader:
             urljoin(DJANGO_VITE_STATIC_URL, path),
         )
 
+    @staticmethod
+    def _generate_production_server_url(path: str) -> str:
+        """
+        Generates an URL to an asset served during production.
+
+        Keyword Arguments:
+            path {str} -- Path to the asset.
+
+        Returns:
+            str -- Full URL to the asset.
+        """
+
+        if apps.is_installed("django.contrib.staticfiles"):
+            from django.contrib.staticfiles.storage import staticfiles_storage
+
+            return staticfiles_storage.url(urljoin(DJANGO_VITE_STATIC_URL_PREFIX, path))
+        else:
+            return urljoin(DJANGO_VITE_STATIC_URL_PREFIX, path)
 
 # Make Loader instance at startup to prevent threading problems
 DjangoViteAssetLoader.instance()
@@ -537,3 +556,4 @@ def vite_legacy_asset(
     return DjangoViteAssetLoader.instance().generate_vite_legacy_asset(
         path, **kwargs
     )
+
