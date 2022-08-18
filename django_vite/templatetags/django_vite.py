@@ -172,15 +172,13 @@ class DjangoViteAssetLoader:
         if "css" in manifest_entry:
             for css_path in manifest_entry["css"]:
                 if css_path not in already_processed:
-                    css_url = (
+                    url = (
                         DjangoViteAssetLoader._generate_production_server_url(
                             css_path
                         )
                     )
                     tags.append(
-                        DjangoViteAssetLoader._generate_stylesheet_tag(
-                            css_url
-                        )
+                        DjangoViteAssetLoader._generate_stylesheet_tag(url)
                     )
 
                 already_processed.append(css_path)
