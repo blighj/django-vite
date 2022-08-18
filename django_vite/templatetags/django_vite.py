@@ -433,6 +433,7 @@ class DjangoViteAssetLoader:
         else:
             return urljoin(DJANGO_VITE_STATIC_URL_PREFIX, path)
 
+
 # Make Loader instance at startup to prevent threading problems
 DjangoViteAssetLoader.instance()
 
